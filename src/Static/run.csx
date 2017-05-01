@@ -8,6 +8,7 @@ using King.Azure.Data;
 static string defaultPage = GetEnvironmentVariable("DefaultPage") ?? "index.htm";
 static string root = GetEnvironmentVariable("Container") ?? "www";
 static string storage = GetEnvironmentVariable("Storage");
+static string notFoundPage = GetEnvironmentVariable("404Page") ?? "404.htm";
 
 public async static Task<HttpResponseMessage> Run(HttpRequestMessage req, TraceWriter log)
 {
@@ -37,7 +38,14 @@ public async static Task<HttpResponseMessage> Run(HttpRequestMessage req, TraceW
     }
     catch
     {
-        return new HttpResponseMessage(HttpStatusCode.NotFound);
+        var response = new HttpResponseMessage(HttpStatusCode.NotFound);
+        var notFoundExists = await container.Exists(notFoundPage);
+        if(notFoundExists) {
+            var stream = await container.Stream(notFoundPage);
+            response.Content = new StreamContent(stream);
+            response.Content.Headers.ContentType = new MediaTypeHeaderValue(mimeType);
+        }
+        return response;
     }
 }
 
